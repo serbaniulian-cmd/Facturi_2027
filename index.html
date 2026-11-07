@@ -1047,10 +1047,25 @@
             chartConsum.n = creeazaGraficConsum("graficConsumNoastre");
             calculeazaSiActualizeaza();
 
+            // Link cu cod (adresa#cod): salvează codul pe acest dispozitiv, apoi scoate codul din adresă
+            const dinLink = decodeURIComponent(location.hash.slice(1)).trim().toLowerCase();
+            if (/^[a-z0-9-]{16,}$/.test(dinLink)) {
+                try { localStorage.setItem(CHEIE_COD, dinLink); } catch (e) {}
+                history.replaceState(null, "", location.pathname + location.search);
+            }
+            if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
             let codSalvat = "";
             try { codSalvat = localStorage.getItem(CHEIE_COD) || ""; } catch (e) {}
             document.getElementById("codSync").value = codSalvat;
             if (codSalvat) pornesteSincronizarea(codSalvat); else seteazaStatus("local");
+
+            // Codul lipit sau confirmat cu Enter se salvează și se conectează singur, fără butonul „Conectează"
+            const campCod = document.getElementById("codSync");
+            campCod.addEventListener("paste", () => setTimeout(() => {
+                if (/^[a-z0-9-]{16,}$/.test(campCod.value.trim().toLowerCase())) conecteazaSync();
+            }, 50));
+            campCod.addEventListener("keydown", e => { if (e.key === "Enter") conecteazaSync(); });
         };
     </script>
 </body>
