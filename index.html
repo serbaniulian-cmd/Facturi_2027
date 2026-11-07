@@ -828,7 +828,7 @@
                 primaSincronizare = true;
                 seteazaStatus("conectare");
 
-                deconecteazaListener = docRef.onSnapshot(snap => {
+                deconecteazaListener = docRef.onSnapshot({ includeMetadataChanges: true }, snap => {
                     const remote = snap.exists ? snap.data() : {};
                     let modificat = false;
                     Object.keys(remote).forEach(k => { if (aplicaValoareRemote(k, remote[k])) modificat = true; });
@@ -846,7 +846,7 @@
                         Object.keys(toate).forEach(k => { if (!(k in remote) && !eImplicit(toate[k])) lipsa[k] = toate[k]; });
                         if (Object.keys(lipsa).length) docRef.set(lipsa, { merge: true }).catch(eroareCloud);
                     }
-                    seteazaStatus(snap.metadata.fromCache ? "offline" : "ok");
+                    seteazaStatus(snap.metadata.fromCache ? "offline" : snap.metadata.hasPendingWrites ? "salvare" : "ok");
                 }, eroareCloud);
             } catch (e) {
                 eroareCloud(e);
@@ -1005,7 +1005,7 @@
 
 
         /* ===== OFFLINE + NOTIFICĂRI ===== */
-        const VAPID_KEY = "BH_dUgzdQbSBqN8Wa85nvVGDUGbxPfma8c_yrrQYqJOVCs4yTPC2qP3lRIJUvV5UElqlzRuAhyPMF5Z999p5KPs";   // Firebase -> Project settings -> Cloud Messaging -> Web Push certificates
+        const VAPID_KEY = "PUNE_AICI_CHEIA_VAPID";   // Firebase -> Project settings -> Cloud Messaging -> Web Push certificates
 
         if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(e => console.warn("Service worker:", e));
         window.addEventListener("offline", () => { if (docRef) seteazaStatus("offline"); });
