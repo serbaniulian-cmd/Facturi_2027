@@ -11,6 +11,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         .sec-ascunsa { display: none !important; }
         @media (min-width: 1280px) { .sec-ascunsa { display: flex !important; } }
@@ -33,9 +36,15 @@
                     </h1>
                     <p class="text-xs md:text-sm text-slate-400 mt-1">Cheltuieli separate pentru ambele locuințe.</p>
                 </div>
-                <div class="bg-emerald-500/10 border border-emerald-500/20 px-5 py-2.5 rounded-2xl w-full md:w-auto flex md:block justify-between items-center md:text-right">
-                    <span class="block text-xs text-emerald-400 font-medium">Total General</span>
-                    <span id="totalCombinat" class="text-2xl font-black text-emerald-400">0,00 lei</span>
+                <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 px-5 py-2.5 rounded-2xl flex md:block justify-between items-center md:text-right">
+                        <span class="block text-xs text-emerald-400 font-medium">Total General</span>
+                        <span id="totalCombinat" class="text-2xl font-black text-emerald-400">0,00 lei</span>
+                    </div>
+                    <div class="bg-rose-500/10 border border-rose-500/20 px-5 py-2.5 rounded-2xl flex md:block justify-between items-center md:text-right">
+                        <span class="block text-xs text-rose-300 font-medium">De plătit</span>
+                        <span id="deplatitCombinat" class="text-2xl font-black text-rose-300">0,00 lei</span>
+                    </div>
                 </div>
             </div>
 
@@ -44,6 +53,7 @@
                 <button onclick="exportaDate()" class="bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold px-3 py-2.5 rounded-xl transition">⬇ Salvează fișier</button>
                 <button onclick="document.getElementById('fisierImport').click()" class="bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-semibold px-3 py-2.5 rounded-xl transition">⬆ Încarcă fișier</button>
                 <input type="file" id="fisierImport" accept=".json,application/json" class="hidden" onchange="importaDate(this)">
+                <button id="btnNotif" onclick="activeazaNotificari()" class="bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 text-xs font-semibold px-3 py-2.5 rounded-xl transition">🔔 Notificări</button>
                 <span id="statusCloud" class="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-slate-700/50 text-slate-300">Doar local</span>
             </div>
 
@@ -65,6 +75,9 @@
             </div>
         </header>
 
+        <!-- SCADENȚE -->
+        <div id="alerteScadente" class="hidden space-y-2"></div>
+
         <!-- COMUTATOR TELEFON -->
         <div class="xl:hidden grid grid-cols-2 gap-1.5 bg-slate-800/60 p-1.5 rounded-2xl border border-slate-700/50">
             <button id="tabP" onclick="arataSectiune('p')" class="py-2.5 rounded-xl text-sm font-bold transition">Părinți</button>
@@ -84,6 +97,18 @@
                         <span id="totalParinti">0,00 lei</span>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">
+                        <div class="text-[11px] text-emerald-300 font-medium">Plătit</div>
+                        <div id="platitP" class="text-sm font-bold text-emerald-300 mt-0.5">0,00 lei</div>
+                    </div>
+                    <div class="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl">
+                        <div class="text-[11px] text-rose-300 font-medium">De plătit</div>
+                        <div id="deplatitP" class="text-sm font-bold text-rose-300 mt-0.5">0,00 lei</div>
+                    </div>
+                </div>
+                <div id="comparatieP" class="text-xs text-slate-400 -mt-2"></div>
 
                 <div class="grid grid-cols-2 gap-2.5">
                     <div class="bg-slate-900/50 border border-slate-700/40 p-3 rounded-xl">
@@ -109,6 +134,23 @@
                     <div class="relative h-48 w-full"><canvas id="graficParinti"></canvas></div>
                 </div>
 
+                <div class="bg-slate-900/60 p-3 md:p-4 rounded-2xl border border-slate-700/40">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <h3 class="text-xs font-semibold text-slate-400">Consum lunar</h3>
+                        <div class="flex gap-1"><button id="bc_p_0" onclick="alegeConsum('p',0)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold">Curent</button><button id="bc_p_1" onclick="alegeConsum('p',1)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold">Apă</button><button id="bc_p_2" onclick="alegeConsum('p',2)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold">Gaz</button></div>
+                    </div>
+                    <div class="relative h-44 w-full"><canvas id="graficConsumP"></canvas></div>
+                    <div id="rezumatConsumP" class="text-xs text-slate-400 mt-2"></div>
+                </div>
+
+                <details class="rounded-2xl border border-slate-700/50 bg-slate-900/40">
+                    <summary class="flex items-center gap-2 p-3.5 cursor-pointer select-none font-bold text-sm text-slate-100"><span class="sageata text-slate-500 text-xs">▶</span>Index de pornire (decembrie 2026)</summary>
+                    <div class="px-3 pb-3 space-y-2">
+                        <p class="text-[11px] text-slate-400">Indexul contoarelor la sfârșitul lui decembrie 2026; din el se calculează consumul din ianuarie.</p>
+                        <div id="indexStartP" class="grid grid-cols-3 gap-2"></div>
+                    </div>
+                </details>
+
                 <div id="luniParinti" class="space-y-2.5"></div>
 
                 <div class="pt-3 border-t border-slate-700/50 text-xs text-slate-400 flex justify-between">
@@ -128,6 +170,18 @@
                         <span id="totalNoastre">0,00 lei</span>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">
+                        <div class="text-[11px] text-emerald-300 font-medium">Plătit</div>
+                        <div id="platitN" class="text-sm font-bold text-emerald-300 mt-0.5">0,00 lei</div>
+                    </div>
+                    <div class="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl">
+                        <div class="text-[11px] text-rose-300 font-medium">De plătit</div>
+                        <div id="deplatitN" class="text-sm font-bold text-rose-300 mt-0.5">0,00 lei</div>
+                    </div>
+                </div>
+                <div id="comparatieN" class="text-xs text-slate-400 -mt-2"></div>
 
                 <div class="grid grid-cols-2 gap-2.5">
                     <div class="bg-slate-900/50 border border-slate-700/40 p-3 rounded-xl">
@@ -153,6 +207,23 @@
                     <div class="relative h-48 w-full"><canvas id="graficNoastre"></canvas></div>
                 </div>
 
+                <div class="bg-slate-900/60 p-3 md:p-4 rounded-2xl border border-slate-700/40">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <h3 class="text-xs font-semibold text-slate-400">Consum lunar</h3>
+                        <div class="flex gap-1"><button id="bc_n_0" onclick="alegeConsum('n',0)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold">Curent</button><button id="bc_n_1" onclick="alegeConsum('n',1)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold">Apă</button><button id="bc_n_2" onclick="alegeConsum('n',2)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold">Gaz</button></div>
+                    </div>
+                    <div class="relative h-44 w-full"><canvas id="graficConsumN"></canvas></div>
+                    <div id="rezumatConsumN" class="text-xs text-slate-400 mt-2"></div>
+                </div>
+
+                <details class="rounded-2xl border border-slate-700/50 bg-slate-900/40">
+                    <summary class="flex items-center gap-2 p-3.5 cursor-pointer select-none font-bold text-sm text-slate-100"><span class="sageata text-slate-500 text-xs">▶</span>Index de pornire (decembrie 2026)</summary>
+                    <div class="px-3 pb-3 space-y-2">
+                        <p class="text-[11px] text-slate-400">Indexul contoarelor la sfârșitul lui decembrie 2026; din el se calculează consumul din ianuarie.</p>
+                        <div id="indexStartN" class="grid grid-cols-3 gap-2"></div>
+                    </div>
+                </details>
+
                 <div id="luniNoastre" class="space-y-2.5"></div>
 
                 <div class="pt-3 border-t border-slate-700/50 text-xs text-slate-400 flex justify-between">
@@ -162,6 +233,47 @@
             </section>
 
         </div>
+
+        <!-- SUMAR GENERAL -->
+        <details class="bg-slate-800/40 border border-slate-700/50 rounded-3xl">
+            <summary class="flex items-center justify-between gap-3 p-4 md:p-6 cursor-pointer select-none">
+                <span class="font-bold text-white flex items-center gap-2"><span class="sageata text-slate-500 text-xs">▶</span>Sumar general pe luni</span>
+                <span class="text-xs text-slate-400">ambele locuințe</span>
+            </summary>
+            <div class="px-4 md:px-6 pb-4 md:pb-6 space-y-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                    <div class="bg-slate-900/50 border border-slate-700/40 p-3 rounded-xl">
+                        <div class="text-[11px] text-slate-400 font-medium flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#6366f1]"></span> Curent</div>
+                        <div id="totCurentC" class="text-sm font-bold text-slate-100 mt-0.5">0,00 lei</div>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-700/40 p-3 rounded-xl">
+                        <div class="text-[11px] text-slate-400 font-medium flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#38bdf8]"></span> Apă</div>
+                        <div id="totApaC" class="text-sm font-bold text-slate-100 mt-0.5">0,00 lei</div>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-700/40 p-3 rounded-xl">
+                        <div class="text-[11px] text-slate-400 font-medium flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#34d399]"></span> Gaz</div>
+                        <div id="totGazC" class="text-sm font-bold text-slate-100 mt-0.5">0,00 lei</div>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-700/40 p-3 rounded-xl">
+                        <div class="text-[11px] text-slate-400 font-medium flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#f43f5e]"></span> DIGI</div>
+                        <div id="totDigiC" class="text-sm font-bold text-slate-100 mt-0.5">0,00 lei</div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-[11px] text-slate-400 border-b border-slate-700/60">
+                                <th class="text-left font-medium py-2">Luna (lei)</th>
+                                <th class="text-right font-medium py-2 text-amber-300">Părinți</th>
+                                <th class="text-right font-medium py-2 text-teal-300">Noi</th>
+                                <th class="text-right font-medium py-2 text-emerald-400">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelSumar"></tbody>
+                    </table>
+                </div>
+            </div>
+        </details>
     </div>
 
     <script>
@@ -190,7 +302,10 @@
             { nume: "Gaz", culoare: "#34d399" },
             { nume: "DIGI", culoare: "#f43f5e" }
         ];
-        const campuri = ["facturi", "status", "primire", "plata"];
+        const campuri = ["facturi", "status", "primire", "scadenta", "plata", "index"];
+        const nrRanduri = c => c === "index" ? 13 : 12;
+        const unitati = ["kWh", "m³", "m³"];
+        const numeContor = ["Curent", "Apă", "Gaz"];
         const numeLocuinta = { p: "parinti", n: "noastre" };
 
         function citesteStocat(cheie, implicit) {
@@ -207,7 +322,9 @@
                 facturi: luni.map(() => [0, 0, 0, 0]),
                 status: luni.map(() => [false, false, false, false]),
                 primire: luni.map(() => ["", "", "", ""]),
-                plata: luni.map(() => ["", "", "", ""])
+                scadenta: luni.map(() => ["", "", "", ""]),
+                plata: luni.map(() => ["", "", "", ""]),
+                index: Array.from({ length: 13 }, () => [0, 0, 0, 0])
             };
         }
 
@@ -242,6 +359,7 @@
         /* ===== INTERFAȚĂ: CARDURI PE LUNI ===== */
         function creeazaLocuinta(tip) {
             const cont = document.getElementById(tip === "p" ? "luniParinti" : "luniNoastre");
+            creeazaIndexStart(tip);
             const o = obiect(tip);
             const lunaCurenta = new Date().getFullYear() === 2027 ? new Date().getMonth() : 0;
             const inputCls = "w-full min-w-0 text-base bg-slate-900 border border-slate-700 text-slate-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-teal-400";
@@ -257,7 +375,7 @@
                     </summary>
                     <div class="px-3 pb-3 space-y-2.5">
                         ${furnizori.map((fz, f) => `
-                        <div class="rounded-xl bg-slate-800/60 border border-slate-700/40 p-3 space-y-2.5">
+                        <div id="card_${tip}_${l}_${f}" class="rounded-xl bg-slate-800/60 border border-slate-700/40 p-3 space-y-2.5">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-white" style="background-color:${fz.culoare}">${fz.nume}</span>
                                 <label class="flex items-center gap-2 text-xs text-slate-300 select-none">
@@ -274,10 +392,22 @@
                                     class="flex-1 min-w-0 text-right text-base font-semibold bg-slate-900 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-400">
                                 <span class="text-sm text-slate-400">lei</span>
                             </div>
+                            ${f < 3 ? `
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] text-slate-400 shrink-0 w-20">Index contor</span>
+                                    <input type="number" inputmode="decimal" step="any" min="0" placeholder="0"
+                                        id="c_${tip}_index_${l + 1}_${f}" value="${o.index[l + 1][f] || ""}"
+                                        oninput="actualizeazaCamp('${tip}','index',${l + 1},${f},parseFloat(this.value) || 0)"
+                                        class="flex-1 min-w-0 text-right text-base bg-slate-900 border border-slate-700 text-slate-100 rounded-lg px-3 py-1.5 focus:outline-none focus:border-teal-400">
+                                    <span class="text-sm text-slate-400 w-8">${unitati[f]}</span>
+                                </div>
+                                <div id="cons_${tip}_${l}_${f}" class="text-xs mt-1 text-right"></div>
+                            </div>` : ""}
                             <div class="grid grid-cols-2 gap-2">
-                                <label class="block text-[11px] text-slate-400 min-w-0">Primită
-                                    <input type="date" id="c_${tip}_primire_${l}_${f}" value="${o.primire[l][f]}"
-                                        onchange="actualizeazaCamp('${tip}','primire',${l},${f},this.value)" class="${inputCls} mt-1">
+                                <label class="block text-[11px] text-slate-400 min-w-0">Scadență
+                                    <input type="date" id="c_${tip}_scadenta_${l}_${f}" value="${o.scadenta[l][f]}"
+                                        onchange="actualizeazaCamp('${tip}','scadenta',${l},${f},this.value)" class="${inputCls} mt-1">
                                 </label>
                                 <label class="block text-[11px] text-slate-400 min-w-0">Plătită
                                     <input type="date" id="c_${tip}_plata_${l}_${f}" value="${o.plata[l][f]}"
@@ -341,6 +471,11 @@
                 });
             });
 
+            actualizeazaStare();
+            actualizeazaScadente();
+            actualizeazaConsum();
+            actualizeazaSumar();
+
             if (chartParinti) {
                 furnizori.forEach((f, i) => { chartParinti.data.datasets[i].data = dateP.facturi.map(l => l[i]); });
                 chartParinti.update();
@@ -349,6 +484,252 @@
                 furnizori.forEach((f, i) => { chartNoastre.data.datasets[i].data = dateN.facturi.map(l => l[i]); });
                 chartNoastre.update();
             }
+        }
+
+
+        /* ===== PLĂTIT / DE PLĂTIT + COMPARAȚIE ===== */
+        const sumaLuna = (arr) => arr.reduce((a, b) => a + b, 0);
+        const sumaDupaStatus = (d, platit) =>
+            d.facturi.reduce((acc, luna, l) => acc + luna.reduce((a, v, f) => a + (!!d.status[l][f] === platit ? v : 0), 0), 0);
+        const fmtScurt = n => n.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        function comparatieLunara(d) {
+            const tot = d.facturi.map(sumaLuna);
+            let i = tot.length - 1;
+            while (i >= 0 && tot[i] <= 0) i--;
+            if (i < 0) return "";
+            const baza = `${luni[i]}: <b class="text-slate-200">${fmt(tot[i])}</b>`;
+            if (i === 0) return baza;
+
+            // Comparăm doar facturile care există în ambele luni, ca să nu inducă în eroare o lună încă incompletă
+            let cur = 0, prev = 0;
+            furnizori.forEach((_, f) => {
+                if (d.facturi[i][f] > 0 && d.facturi[i - 1][f] > 0) { cur += d.facturi[i][f]; prev += d.facturi[i - 1][f]; }
+            });
+            if (prev <= 0) return baza;
+
+            const dif = cur - prev;
+            const pct = Math.round(Math.abs(dif) / prev * 100);
+            let semn = `<span class="text-slate-300">= la fel</span>`;
+            if (dif > 0.005) semn = `<span class="text-rose-300 font-semibold">▲ ${pct}% mai mult</span>`;
+            else if (dif < -0.005) semn = `<span class="text-emerald-300 font-semibold">▼ ${pct}% mai puțin</span>`;
+            return `${baza} · ${semn} față de ${luni[i - 1].toLowerCase()}`;
+        }
+
+        function actualizeazaStare() {
+            [["P", dateP], ["N", dateN]].forEach(([s, d]) => {
+                setText("platit" + s, fmt(sumaDupaStatus(d, true)));
+                setText("deplatit" + s, fmt(sumaDupaStatus(d, false)));
+                const el = document.getElementById("comparatie" + s);
+                if (el) el.innerHTML = comparatieLunara(d);
+            });
+            setText("deplatitCombinat", fmt(sumaDupaStatus(dateP, false) + sumaDupaStatus(dateN, false)));
+        }
+
+        /* ===== SCADENȚE ===== */
+        const ZILE_AVERTIZARE = 5;
+
+        function zilePanaLa(iso) {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+            if (!m) return null;
+            const azi = new Date(); azi.setHours(0, 0, 0, 0);
+            const d = new Date(+m[1], +m[2] - 1, +m[3]);
+            return Math.round((d - azi) / 86400000);
+        }
+
+        function zileTxt(n) {
+            if (n === 1) return "1 zi";
+            const r = n % 100;
+            return (r >= 1 && r < 20) ? `${n} zile` : `${n} de zile`;
+        }
+
+        function textScadenta(z) {
+            if (z < 0) return `întârziată cu ${zileTxt(-z)}`;
+            if (z === 0) return "scade azi";
+            if (z === 1) return "scade mâine";
+            return `scade în ${zileTxt(z)}`;
+        }
+
+        function stareScadenta(o, l, f) {
+            if (o.status[l][f]) return null;
+            const z = zilePanaLa(o.scadenta[l][f]);
+            return z === null ? null : z;
+        }
+
+        function coloreazaCard(card, z) {
+            card.classList.remove("border-slate-700/40", "border-rose-500/70", "border-amber-400/70");
+            if (z !== null && z < 0) card.classList.add("border-rose-500/70");
+            else if (z !== null && z <= ZILE_AVERTIZARE) card.classList.add("border-amber-400/70");
+            else card.classList.add("border-slate-700/40");
+        }
+
+        function actualizeazaScadente() {
+            const alerte = [];
+            [["p", "Părinți"], ["n", "Noi"]].forEach(([t, nume]) => {
+                const o = obiect(t);
+                luni.forEach((_, l) => {
+                    let intarziata = false;
+                    furnizori.forEach((fz, f) => {
+                        const z = stareScadenta(o, l, f);
+                        const card = document.getElementById(`card_${t}_${l}_${f}`);
+                        if (card) coloreazaCard(card, z);
+                        if (z === null || z > ZILE_AVERTIZARE) return;
+                        if (z < 0) intarziata = true;
+                        alerte.push({ t, nume, l, f, z, suma: o.facturi[l][f], fz });
+                    });
+                    const el = document.getElementById(`plt_${t}_${l}`);
+                    if (el) {
+                        if (intarziata) { el.innerText = "⚠ " + el.innerText; el.className = "text-rose-300 font-semibold"; }
+                        else el.className = "text-slate-400";
+                    }
+                });
+            });
+
+            alerte.sort((a, b) => a.z - b.z);
+            const cont = document.getElementById("alerteScadente");
+            if (!alerte.length) { cont.classList.add("hidden"); cont.innerHTML = ""; return; }
+            cont.classList.remove("hidden");
+            cont.innerHTML = alerte.map(a => {
+                const rosu = a.z < 0;
+                const cls = rosu
+                    ? "bg-rose-500/10 border-rose-500/40 text-rose-200"
+                    : "bg-amber-400/10 border-amber-400/40 text-amber-200";
+                return `<button onclick="mergiLa('${a.t}',${a.l},${a.f})" class="w-full text-left flex items-center justify-between gap-3 border ${cls} rounded-2xl px-4 py-3 transition active:scale-[0.99]">
+                    <span class="min-w-0">
+                        <span class="block text-sm font-bold truncate">${a.fz.nume} · ${luni[a.l]}</span>
+                        <span class="block text-[11px] opacity-80">${a.nume} · ${textScadenta(a.z)}</span>
+                    </span>
+                    <span class="text-sm font-black shrink-0">${a.suma > 0 ? fmt(a.suma) : "fără sumă"}</span>
+                </button>`;
+            }).join("");
+        }
+
+        function mergiLa(t, l, f) {
+            arataSectiune(t);
+            const card = document.getElementById(`card_${t}_${l}_${f}`);
+            if (!card) return;
+            const det = card.closest("details");
+            if (det) det.open = true;
+            card.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        /* ===== SUMAR GENERAL ===== */
+        function actualizeazaSumar() {
+            [["Curent", 0], ["Apa", 1], ["Gaz", 2], ["Digi", 3]].forEach(([n, i]) => {
+                setText("tot" + n + "C", fmt(totalFurnizor(dateP.facturi, i) + totalFurnizor(dateN.facturi, i)));
+            });
+
+            const tb = document.getElementById("tabelSumar");
+            if (!tb) return;
+            const celula = v => v > 0 ? fmtScurt(v) : "–";
+            let sP = 0, sN = 0;
+            const randuri = luni.map((luna, l) => {
+                const p = sumaLuna(dateP.facturi[l]), n = sumaLuna(dateN.facturi[l]);
+                sP += p; sN += n;
+                const gol = (p + n) <= 0;
+                return `<tr class="border-b border-slate-800 ${gol ? "text-slate-600" : "text-slate-200"}">
+                    <td class="py-2 text-left">${luna}</td>
+                    <td class="py-2 text-right">${celula(p)}</td>
+                    <td class="py-2 text-right">${celula(n)}</td>
+                    <td class="py-2 text-right font-semibold">${celula(p + n)}</td>
+                </tr>`;
+            });
+            randuri.push(`<tr class="font-bold">
+                <td class="py-2.5 text-left text-slate-300">Total an</td>
+                <td class="py-2.5 text-right text-amber-300">${fmtScurt(sP)}</td>
+                <td class="py-2.5 text-right text-teal-300">${fmtScurt(sN)}</td>
+                <td class="py-2.5 text-right text-emerald-400">${fmtScurt(sP + sN)}</td>
+            </tr>`);
+            tb.innerHTML = randuri.join("");
+        }
+
+
+        /* ===== INDEXURI CONTOARE + CONSUM ===== */
+        let consumSel = { p: 0, n: 0 }, chartConsum = { p: null, n: null };
+        const fmtNr = n => n.toLocaleString("ro-RO", { maximumFractionDigits: 3 });
+
+        // consum = index lună − index lună anterioară (doar când ambele există)
+        function consumLunar(d, f) {
+            return luni.map((_, l) => {
+                const a = d.index[l][f], b = d.index[l + 1][f];
+                return (a > 0 && b > 0 && b >= a) ? Math.round((b - a) * 1000) / 1000 : null;
+            });
+        }
+
+        function creeazaIndexStart(tip) {
+            const o = obiect(tip);
+            document.getElementById("indexStart" + tip.toUpperCase()).innerHTML = [0, 1, 2].map(f => `
+                <label class="block text-[11px] text-slate-400 min-w-0">${numeContor[f]} (${unitati[f]})
+                    <input type="number" inputmode="decimal" step="any" min="0" placeholder="0" id="c_${tip}_index_0_${f}" value="${o.index[0][f] || ""}"
+                        oninput="actualizeazaCamp('${tip}','index',0,${f},parseFloat(this.value) || 0)"
+                        class="w-full min-w-0 text-base bg-slate-900 border border-slate-700 text-slate-100 rounded-lg px-2 py-1.5 mt-1 focus:outline-none focus:border-teal-400">
+                </label>`).join("");
+        }
+
+        function creeazaGraficConsum(id) {
+            const tick = { color: "#64748b", font: { size: 10 } };
+            return new Chart(document.getElementById(id).getContext("2d"), {
+                type: "bar",
+                data: { labels: luni.map(l => l.substring(0, 3)), datasets: [{ data: [], borderRadius: 3 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { grid: { display: false }, ticks: tick }, y: { beginAtZero: true, grid: { color: "#334155" }, ticks: tick } }
+                }
+            });
+        }
+
+        function alegeConsum(t, f) { consumSel[t] = f; actualizeazaConsum(); }
+
+        function actualizeazaConsum() {
+            ["p", "n"].forEach(t => {
+                const d = obiect(t), f = consumSel[t], u = unitati[f];
+                for (let i = 0; i < 3; i++) {
+                    const b = document.getElementById(`bc_${t}_${i}`);
+                    if (b) b.className = "px-2.5 py-1 rounded-lg text-[11px] font-semibold " + (i === f ? "bg-slate-200 text-slate-900" : "bg-slate-800 text-slate-300");
+                }
+
+                for (let g = 0; g < 3; g++) {
+                    const c = consumLunar(d, g);
+                    luni.forEach((_, l) => {
+                        const el = document.getElementById(`cons_${t}_${l}_${g}`);
+                        if (!el) return;
+                        const a = d.index[l][g], b = d.index[l + 1][g];
+                        let txt = "", cls = "text-slate-300";
+                        if (b > 0) {
+                            if (c[l] !== null) txt = `Consum: ${fmtNr(c[l])} ${unitati[g]}`;
+                            else if (a > 0) { txt = "Indexul e mai mic decât cel anterior – verifică"; cls = "text-amber-300"; }
+                            else { txt = l === 0 ? "Completează indexul de pornire pentru consum" : "Lipsește indexul lunii anterioare"; cls = "text-slate-500"; }
+                        }
+                        el.innerText = txt;
+                        el.className = "text-xs mt-1 text-right " + cls;
+                    });
+                }
+
+                const cons = consumLunar(d, f);
+                const ch = chartConsum[t];
+                if (ch) {
+                    const ds = ch.data.datasets[0];
+                    ds.data = cons; ds.backgroundColor = furnizori[f].culoare; ds.label = `${numeContor[f]} (${u})`;
+                    ch.options.scales.y.title = { display: true, text: u, color: "#64748b", font: { size: 10 } };
+                    ch.update();
+                }
+
+                const vals = cons.filter(v => v !== null);
+                let i = cons.length - 1;
+                while (i >= 0 && cons[i] === null) i--;
+                let txt = "Introdu indexul contorului în cardul fiecărei luni (și indexul de pornire) ca să vezi consumul.";
+                if (i >= 0) {
+                    txt = `${luni[i]}: <b class="text-slate-200">${fmtNr(cons[i])} ${u}</b>`;
+                    if (i > 0 && cons[i - 1] > 0) {
+                        const pct = Math.round((cons[i] - cons[i - 1]) / cons[i - 1] * 100);
+                        txt += pct === 0 ? " · la fel ca luna trecută"
+                            : ` · <span class="${pct > 0 ? "text-rose-300" : "text-emerald-300"} font-semibold">${pct > 0 ? "▲" : "▼"} ${Math.abs(pct)}%</span> față de ${luni[i - 1].toLowerCase()}`;
+                    }
+                    txt += ` · medie ${fmtNr(Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100)} ${u}/lună`;
+                }
+                document.getElementById("rezumatConsum" + t.toUpperCase()).innerHTML = txt;
+            });
         }
 
         function creeazaGrafic(canvasId, dateFacturi) {
@@ -385,8 +766,8 @@
 
         function toateCelulele() {
             const out = {};
-            ["p", "n"].forEach(t => campuri.forEach(c => luni.forEach((_, l) => furnizori.forEach((__, f) => {
-                out[cheieCelula(t, c, l, f)] = obiect(t)[c][l][f];
+            ["p", "n"].forEach(t => campuri.forEach(c => obiect(t)[c].forEach((rand, l) => rand.forEach((v, f) => {
+                out[cheieCelula(t, c, l, f)] = v;
             }))));
             return out;
         }
@@ -413,9 +794,9 @@
             if (parti.length !== 4) return false;
             const [t, c, ls, fs] = parti;
             const l = Number(ls), f = Number(fs);
-            if (!["p", "n"].includes(t) || !campuri.includes(c) || !(l >= 0 && l < 12) || !(f >= 0 && f < 4)) return false;
+            if (!["p", "n"].includes(t) || !campuri.includes(c) || !(l >= 0 && l < nrRanduri(c)) || !(f >= 0 && f < 4)) return false;
 
-            if (c === "facturi") { val = Number(val); if (!isFinite(val)) return false; }
+            if (c === "facturi" || c === "index") { val = Number(val); if (!isFinite(val)) return false; }
             else if (c === "status") { val = !!val; }
             else { val = typeof val === "string" ? val : ""; }
 
@@ -426,18 +807,23 @@
             const el = document.getElementById("c_" + key);
             if (el && el !== document.activeElement) {
                 if (c === "status") el.checked = val;
-                else if (c === "facturi") el.value = val ? val : "";
+                else if (c === "facturi" || c === "index") el.value = val ? val : "";
                 else el.value = val;
             }
             return true;
         }
 
+        let persistentaPornita = false;
         function pornesteSincronizarea(cod) {
             opresteSincronizarea();
             if (!CLOUD_ACTIV || !cod) { seteazaStatus("local"); return; }
             try {
                 if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
                 db = firebase.firestore();
+                if (!persistentaPornita) {   // cache local: aplicația merge și fără internet, iar scrierile se trimit la reconectare
+                    persistentaPornita = true;
+                    db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn("Mod offline indisponibil:", e.code));
+                }
                 docRef = db.collection("facturi2027").doc(cod);
                 primaSincronizare = true;
                 seteazaStatus("conectare");
@@ -542,7 +928,7 @@
             const nume = `facturi-2027-${azi}.json`;
             const continut = JSON.stringify({
                 aplicatie: "facturi-2027",
-                versiune: 1,
+                versiune: 3,
                 exportat: new Date().toISOString(),
                 parinti: dateP,
                 noastre: dateN
@@ -567,10 +953,17 @@
 
         function locuintaValida(o) {
             if (!o) return false;
-            return campuri.every(c =>
-                Array.isArray(o[c]) && o[c].length === 12 &&
+            // "scadenta" lipsește din fișierele salvate înainte de această versiune, deci nu e obligatorie
+            return campuri.filter(c => !["scadenta", "index"].includes(c) || o[c] !== undefined).every(c =>
+                Array.isArray(o[c]) && o[c].length === nrRanduri(c) &&
                 o[c].every(l => Array.isArray(l) && l.length === 4)
             );
+        }
+
+        function completeazaCampuri(o) {
+            const impl = dateImplicite();
+            campuri.forEach(c => { if (!o[c]) o[c] = impl[c]; });
+            return o;
         }
 
         function importaDate(input) {
@@ -584,8 +977,8 @@
                     if (!locuintaValida(data.parinti) || !locuintaValida(data.noastre)) throw new Error("format");
                     if (!confirm("Datele din fișier vor înlocui datele curente. Continui?")) { input.value = ""; return; }
 
-                    dateP = data.parinti;
-                    dateN = data.noastre;
+                    dateP = completeazaCampuri(data.parinti);
+                    dateN = completeazaCampuri(data.noastre);
                     salveazaToateLocal();
                     creeazaLocuinta("p");
                     creeazaLocuinta("n");
@@ -607,6 +1000,41 @@
             reader.readAsText(fisier);
         }
 
+        // Aplicația de pe ecranul principal rămâne deschisă zile întregi: reîmprospătăm scadențele la revenire
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) calculeazaSiActualizeaza(); });
+
+
+        /* ===== OFFLINE + NOTIFICĂRI ===== */
+        const VAPID_KEY = "PUNE_AICI_CHEIA_VAPID";   // Firebase -> Project settings -> Cloud Messaging -> Web Push certificates
+
+        if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(e => console.warn("Service worker:", e));
+        window.addEventListener("offline", () => { if (docRef) seteazaStatus("offline"); });
+
+        function eticheteNotif() {
+            const b = document.getElementById("btnNotif");
+            if (b && localStorage.getItem("notifActive") === "1" && Notification.permission === "granted") b.innerText = "🔔 Notificări active";
+        }
+
+        async function activeazaNotificari() {
+            try {
+                if (!("Notification" in window) || !("serviceWorker" in navigator))
+                    return alert("Notificările nu sunt disponibile aici. Pe iPhone, adaugă aplicația pe ecranul principal și deschide-o de acolo.");
+                if (!docRef) return alert("Pornește mai întâi sincronizarea (butonul ☁ Sincronizare).");
+                if (VAPID_KEY.startsWith("PUNE_")) return alert("Lipsește cheia VAPID din index.html (constanta VAPID_KEY).");
+                if (await Notification.requestPermission() !== "granted") return alert("Notificările nu au fost permise.");
+                const reg = await navigator.serviceWorker.ready;
+                const token = await firebase.messaging().getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+                await docRef.set({ fcm: firebase.firestore.FieldValue.arrayUnion(token) }, { merge: true });
+                localStorage.setItem("notifActive", "1");
+                eticheteNotif();
+                alert("Notificările sunt active pe acest telefon.");
+            } catch (e) {
+                console.error(e);
+                alert("Nu am putut activa notificările: " + (e.message || e));
+            }
+        }
+        eticheteNotif();
+
         /* ===== PORNIRE ===== */
         window.onload = () => {
             creeazaLocuinta("p");
@@ -615,6 +1043,8 @@
 
             chartParinti = creeazaGrafic("graficParinti", dateP.facturi);
             chartNoastre = creeazaGrafic("graficNoastre", dateN.facturi);
+            chartConsum.p = creeazaGraficConsum("graficConsumParinti");
+            chartConsum.n = creeazaGraficConsum("graficConsumNoastre");
             calculeazaSiActualizeaza();
 
             let codSalvat = "";
